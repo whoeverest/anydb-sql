@@ -7,6 +7,8 @@ declare module "anydb-sql" {
         begin:()=>anydbSQL.Transaction
         close:(err:Error)=>void
     }
+    
+    interface Dictionary<T> { [key:string]:T; }
 
     module anydbSQL {
         export interface OrderByValueNode {}
