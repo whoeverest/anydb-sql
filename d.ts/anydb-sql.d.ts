@@ -15,6 +15,7 @@ declare module "anydb-sql" {
             dataType?:string;
             references?: {table:string; column: string}
             notNull?:boolean
+            unique?:boolean
         }
 
         export interface TableDefinition {
@@ -41,11 +42,15 @@ declare module "anydb-sql" {
 
         export interface SubQuery<T> {
             select(node:Column<T>):SubQuery<T>
+            select(...nodes: any[]):SubQuery<T>
             where(...nodes:any[]):SubQuery<T>
             from(table:TableNode):SubQuery<T>
+            from(statement:string):SubQuery<T>
             group(...nodes:any[]):SubQuery<T>
             order(criteria:OrderByValueNode):SubQuery<T>
-            notExists(subQuery:SubQuery<any>):SubQuery<T>
+            exists():BinaryNode
+            notExists(): BinaryNode;
+            notExists(subQuery:SubQuery<any>):BinaryNode
         }
 
         interface Executable<T> {
@@ -67,6 +72,7 @@ declare module "anydb-sql" {
 
         export interface Query<T> extends Executable<T>, Queryable<T> {
             from(table:TableNode):Query<T>
+            from(statement:string):Query<T>
             update(o:Dictionary<any>):ModifyingQuery
             update(o:{}):ModifyingQuery
             group(...nodes:any[]):Query<T>
@@ -106,23 +112,41 @@ declare module "anydb-sql" {
             select():Query<T>
             select<U>(...nodes:any[]):Query<U>
             from<U>(table:TableNode):Query<U>
+            from<U>(statement:string):Query<U>
             star():Column<any>
             subQuery<U>():SubQuery<U>
             eventEmitter:{emit:(type:string, ...args:any[])=>void
                           on:(eventName:string, handler:Function)=>void}
             columns:Column<any>[]
             sql: SQL;
-            alter():AlterQuery<T>
+            alter():AlterQuery<T>;
+            indexes(): IndexQuery;
+
+            _name: string;
         }
         export interface AlterQuery<T> extends Executable<void> {
             addColumn(column:Column<any>): AlterQuery<T>;
             addColumn(name: string, options:string): AlterQuery<T>;
-            dropColumn(column: Column<any>): AlterQuery<T>;
+            dropColumn(column: Column<any>|string): AlterQuery<T>;
             renameColumn(column: Column<any>, newColumn: Column<any>):AlterQuery<T>;
             renameColumn(column: Column<any>, newName: string):AlterQuery<T>;
             renameColumn(name: string, newName: string):AlterQuery<T>;
             rename(newName: string): AlterQuery<T>
         }
+        export interface IndexQuery {
+            create(): IndexCreationQuery;
+            create(indexName: string): IndexCreationQuery;
+            drop(indexName: string): Executable<void>;
+            drop(...columns: Column<any>[]): Executable<void>
+        }
+        export interface IndexCreationQuery extends Executable<void> {
+            unique(): IndexCreationQuery;
+            using(name: string): IndexCreationQuery;
+            on(...columns: (Column<any>|OrderByValueNode)[]): IndexCreationQuery;
+            withParser(parserName: string): IndexCreationQuery;
+            fulltext(): IndexCreationQuery;
+            spatial(): IndexCreationQuery;
+        } 
 
         export interface SQL {
             functions: {
@@ -161,6 +185,9 @@ declare module "anydb-sql" {
             descending:OrderByValueNode
             asc:OrderByValueNode
             desc:OrderByValueNode
+            name: string;
+
+            table: Table<any>;
         }
 
         export interface AnydbSql extends DatabaseConnection {
