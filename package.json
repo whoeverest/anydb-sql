@@ -37,7 +37,7 @@
     "any-db-postgres": "^2.1.4",
     "any-db-transaction": "^2.2.2",
     "bluebird": "^2.10.2",
-    "sql": "^0.65.0"
+    "sql": "^0.78.0"
   },
   "devDependencies": {
     "blue-tape": "^0.1.7",
