@@ -95,10 +95,12 @@ declare module "anydb-sql" {
             limit(l:number):Query<T>
             offset(o:number):Query<T>
         }
-
+            
         export interface ModifyingQuery extends Executable<void> {
-            returning<U>(...nodes:any[]):Query<U>
-            where(...nodes:any[]):ModifyingQuery
+            returning<U>(...nodes: any[]): Query<U>;
+            where(...nodes: any[]): ModifyingQuery;
+            onConflict(ignore: { columns: string[], }): ModifyingQuery;
+            onConflict(update: { columns: string[], update: string[], }): ModifyingQuery;
         }
 
         export interface TableNode {
