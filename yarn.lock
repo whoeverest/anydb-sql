@@ -464,7 +464,7 @@ jsprim@^1.2.2:
     json-schema "0.2.3"
     verror "1.10.0"
 
-lodash@4.1.x, lodash@^4.17.5:
+lodash@^4.17.5:
   version "4.17.10"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.10.tgz#1b7793cf7259ea38fb3661d4d38b3260af8ae4e7"
 
@@ -530,6 +530,13 @@ node-pre-gyp@~0.6.38:
     semver "^5.3.0"
     tar "^2.2.1"
     tar-pack "^3.4.0"
+
+node-sql-2@^0.78.0:
+  version "0.78.0"
+  resolved "https://registry.yarnpkg.com/node-sql-2/-/node-sql-2-0.78.0.tgz#69fe8c701af8ace09fda5a2e61eb0e80e0f56918"
+  dependencies:
+    lodash "^4.17.5"
+    sliced "0.0.x"
 
 nopt@^4.0.1:
   version "4.0.1"
@@ -808,13 +815,6 @@ split@^1.0.0:
   resolved "https://registry.yarnpkg.com/split/-/split-1.0.1.tgz#605bd9be303aa59fb35f9229fbea0ddec9ea07d9"
   dependencies:
     through "2"
-
-sql@^0.78.0:
-  version "0.78.0"
-  resolved "https://registry.yarnpkg.com/sql/-/sql-0.78.0.tgz#894585d56111dbb1768741a4d9935c82c8595949"
-  dependencies:
-    lodash "4.1.x"
-    sliced "0.0.x"
 
 sqlite3@3.x:
   version "3.1.13"
