@@ -1,5 +1,5 @@
 
-declare module "anydb-sql" {
+declare module "anydb-sql-2" {
     import Promise = require('bluebird');
 
     interface AnyDBPool extends anydbSQL.DatabaseConnection {

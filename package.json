@@ -1,14 +1,14 @@
 {
-  "name": "anydb-sql",
+  "name": "anydb-sql-2",
   "version": "0.6.54",
   "description": "Minimal ORM for mysql, postgresql and sqlite with complete arbitrary SQL query support (based on brianc's query builder sql)",
   "main": "anydb-sql.js",
   "scripts": {
-    "test": "tap test/index.js"
+    "test": "tape test/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/doxout/anydb-sql.git"
+    "url": "git://github.com/TokyoFarmer/anydb-sql-2.git"
   },
   "typings": "./d.ts/anydb-sql-commonjs.d.ts",
   "author": "spion",
@@ -26,7 +26,7 @@
     "sqlite"
   ],
   "bugs": {
-    "url": "https://github.com/doxout/anydb-sql/issues"
+    "url": "https://github.com/TokyoFarmer/anydb-sql-2/issues"
   },
   "directories": {
     "test": "test"
