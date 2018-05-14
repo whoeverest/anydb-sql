@@ -8,8 +8,6 @@ var path = require('path');
 
 var util = require('util');
 
-throw new Error('SQLite support is disabled in this version of anydb-sql. Tests cant be run.');
-
 var db = anydbsql({
   url: 'sqlite3://',
   connections: 1

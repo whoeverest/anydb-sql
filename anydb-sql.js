@@ -19,6 +19,8 @@ var queryMethods = [
 function extractDialect(adr) {
     var dialect = url.parse(adr).protocol;
     dialect = dialect.substr(0, dialect.length - 1);
+    if (dialect == 'sqlite3')
+        dialect = 'sqlite';
     return dialect;
 }
 
@@ -31,7 +33,17 @@ module.exports = function (opt) {
 
     db.open = function() {
         if (pool) return; // already open
-        pool = new AnyDBPool(opt.url, opt.connections);
+        if (dialect == 'sqlite') {
+            try {
+                var SQLitePool = require('./lib/sqlite-pool');
+                pool = new SQLitePool(opt.url, opt.connections);
+            } catch (e) {
+                throw new Error("Unable to load sqlite pool: " + e.message);
+            }
+        }
+        else {
+            pool = new AnyDBPool(opt.url, opt.connections);
+        }
         pool._mainpool = true;
     };
 
