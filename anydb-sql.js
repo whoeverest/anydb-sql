@@ -24,7 +24,7 @@ function extractDialect(adr) {
     return dialect;
 }
 
-module.exports = function (opt) {
+module.exports.anydbSQL = function (opt) {
     var pool,
         db = {},
         dialect = extractDialect(opt.url);

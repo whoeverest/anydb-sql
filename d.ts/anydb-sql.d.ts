@@ -8,7 +8,6 @@ declare module "anydb-sql-2" {
     close: (err: Error) => void;
   }
 
-  namespace anydbSQL {
     export interface OrderByValueNode { }
 
     interface MaybeNamed<Name extends string> {
@@ -254,9 +253,6 @@ declare module "anydb-sql-2" {
       getPool(): AnyDBPool;
       dialect(): string;
     }
-  }
 
-  function anydbSQL(config: Object): anydbSQL.AnydbSql;
-
-  export = anydbSQL;
+  export function anydbSQL(config: Object): AnydbSql;
 }

@@ -1,6 +1,6 @@
 var test = require('blue-tape').test;
 
-var anydbsql = require('../anydb-sql');
+var anydbsql = require('../anydb-sql').anydbSQL;
 
 var grouper = require('../lib/grouper');
 
