@@ -119,9 +119,9 @@ module.exports.anydbSQL = function (opt) {
             return resPromise.then(function (res) {
                 if (where._logQueries) {
                     console.log("anydb-sql query complete: `" + query.text
-                                + "` with params", query.values, 
+                                + "` with params", query.values,
                                 "in tx", where._id,
-                                "at stack\n", estack.stack.split('\n').slice(2,7).join('\n'))
+                                "stack\n", estack.stack.split('\n').slice(2,7).join('\n'))
 
                 }
                 return res && res.rows ? grouper.process(res.rows) : null;
