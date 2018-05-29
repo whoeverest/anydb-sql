@@ -281,6 +281,8 @@ module.exports.anydbSQL = function (opt) {
     function wrapTransaction(tx) {
         tx._id = ++txid;
         tx.savepoint = savePoint(dialect);
+        tx.begin = tx.savepoint;
+        tx.close = function() { throw new Error('in anydb close fail tapa')}
         tx.__transaction = true;
         tx.logQueries = function(enabled) {
             tx._logQueries = enabled;
@@ -289,6 +291,8 @@ module.exports.anydbSQL = function (opt) {
     }
 
     db.getPool = function() { return pool; };
+
+    db.setPool = function(newPool) { pool = newPool; return pool; }
 
     db.dialect = function() { return dialect; };
 

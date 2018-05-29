@@ -256,3 +256,5 @@ declare module "anydb-sql-2" {
 
   export function anydbSQL(config: Object): AnydbSql;
 }
+
+console.log('hello')
