@@ -119,9 +119,9 @@ module.exports.anydbSQL = function (opt) {
             return resPromise.then(function (res) {
                 if (where._logQueries) {
                     console.log("anydb-sql query complete: `" + query.text
-                                + "` with params", query.values, 
+                                + "` with params", query.values,
                                 "in tx", where._id,
-                                "at stack\n", estack.stack.split('\n').slice(2,7).join('\n'))
+                                "stack\n", estack.stack.split('\n').slice(2,7).join('\n'))
 
                 }
                 return res && res.rows ? grouper.process(res.rows) : null;
@@ -281,6 +281,8 @@ module.exports.anydbSQL = function (opt) {
     function wrapTransaction(tx) {
         tx._id = ++txid;
         tx.savepoint = savePoint(dialect);
+        tx.begin = tx.savepoint;
+        tx.close = function() { throw new Error('in anydb close fail tapa')}
         tx.__transaction = true;
         tx.logQueries = function(enabled) {
             tx._logQueries = enabled;
@@ -289,6 +291,82 @@ module.exports.anydbSQL = function (opt) {
     }
 
     db.getPool = function() { return pool; };
+
+    db.setPool = function(newPool) { pool = newPool; return pool; }
+
+    let testMode = false;
+    let fakeTxnPool = null;
+    let oldPool = null;
+
+    /**
+     * Transforms a transaction into a savepoint.
+     *
+     * `commitAsync` and `rollbackAsync` will do nothing when called.
+     */
+    function txWithoutSavepointCommits(tx) {
+        const oldBegin = tx.begin;
+
+        tx.begin = function() {
+            const savepoint = oldBegin.call(this);
+            savepoint.commitAsync = function() { return P.resolve(); };
+            savepoint.rollbackAsync = function() { return P.resolve(); };
+            return savepoint;
+        }
+
+        return tx;
+    }
+
+    /**
+     * When the DB is in test mode, `db.begin` doesn't create new transactions.
+     * Instead, the pool is replaced with a single transaction, and a new
+     * savepoint is created every time begin is called.
+     *
+     * Here's the math; in test mode:
+     * -> pool == transaction
+     * -> new transaction == savepoint
+     * -> commit: does nothing
+     * -> rollback: is translated to RESTORE SAVEPOINT
+     */
+    db.testMode = function(val) {
+        if (val === void 0) val = true;
+
+        if (val === true) {
+            if (testMode) {
+                return console.warn('DB is already in test mode; ignoring.');
+            }
+            testMode = true;
+            oldPool = pool;
+            fakeTxnPool = txWithoutSavepointCommits(wrapTransaction(pool.begin()));
+            db.setPool(fakeTxnPool);
+        } else {
+            if (!testMode) {
+                return console.warn('DB is not in test mode; ignoring.');
+            }
+            db.setPool(oldPool);
+            fakeTxnPool = null;
+            testMode = false;
+        }
+    }
+
+    /**
+     * Rolls back the test transaction. Resets the "fake" pool.
+     */
+    db.testReset = function() {
+        if (!testMode) {
+            throw new Error('DB is not in test mode')
+        }
+        const rollbackPromise = fakeTxnPool.rollbackAsync().catch((e) => {
+            if (e.message.indexOf("method 'rollback' unavailable in state 'closed'") >= 0) {
+                console.log("anydb, test mode warning: can't reset test. Did you send broken SQL to the DB?")
+            } else {
+                throw e;
+            }
+        });
+        return rollbackPromise.then(() => {
+            fakeTxnPool = txWithoutSavepointCommits(wrapTransaction(oldPool.begin()));
+            db.setPool(fakeTxnPool)
+        })
+    }
 
     db.dialect = function() { return dialect; };
 
