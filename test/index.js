@@ -1,14 +1,12 @@
 var test = require('blue-tape').test;
 
-var anydbsql = require('../anydb-sql');
+var anydbsql = require('../anydb-sql').anydbSQL;
 
 var grouper = require('../lib/grouper');
 
 var path = require('path');
 
 var util = require('util');
-
-throw new Error('SQLite support is disabled in this version of anydb-sql. Tests cant be run.');
 
 var db = anydbsql({
   url: 'sqlite3://',
@@ -78,9 +76,7 @@ test('anydb-sql', function(t) {
                 return true;
             });
         }).done(null, function(e) {
-            console.error(e.stack);
             t.notOk(e, 'db.transaction should not throw');
-            t.end();
         })
     });
 
@@ -152,6 +148,23 @@ test('anydb-sql', function(t) {
             t.end();
         });
     })
+
+    t.test('tx savepoint', function(t) {
+      let q = db.transaction(tx => {
+        tx.logQueries(true)
+        console.log("Loging queries");
+
+        let sp = tx.begin();
+        console.log("Began TX");
+        return sp.queryAsync('select * from users')
+          .then(r => t.ok(r, 'should return some rows'))
+          .then(() => sp.commitAsync());
+
+      })
+      return q.catch(er =>t.notOk(er, 'savepoint error'))
+
+    })
+
     t.test('db.close', function(t) {
       t.plan(1);
       db.close(function(err) {
@@ -166,9 +179,5 @@ test('anydb-sql', function(t) {
         t.equals(q, 'SELECT AVG("users"."id") AS "avgid" FROM "users"');
         t.end();
     });
-
-
-
   });
-
 });

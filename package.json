@@ -1,16 +1,16 @@
 {
-  "name": "anydb-sql",
-  "version": "0.6.54",
+  "name": "anydb-sql-2",
+  "version": "2.1.0",
   "description": "Minimal ORM for mysql, postgresql and sqlite with complete arbitrary SQL query support (based on brianc's query builder sql)",
   "main": "anydb-sql.js",
+  "types": "d.ts/anydb-sql.d.ts",
   "scripts": {
-    "test": "tap test/index.js"
+    "test": "tape test/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/doxout/anydb-sql.git"
+    "url": "git://github.com/TokyoFarmer/anydb-sql-2.git"
   },
-  "typings": "./d.ts/anydb-sql-commonjs.d.ts",
   "author": "spion",
   "license": "MIT",
   "readmeFilename": "README.md",
@@ -26,7 +26,7 @@
     "sqlite"
   ],
   "bugs": {
-    "url": "https://github.com/doxout/anydb-sql/issues"
+    "url": "https://github.com/TokyoFarmer/anydb-sql-2/issues"
   },
   "directories": {
     "test": "test"
@@ -36,11 +36,17 @@
     "any-db-mysql": "^2.1.2",
     "any-db-postgres": "^2.1.4",
     "any-db-transaction": "^2.2.2",
-    "bluebird": "^2.10.2",
-    "sql": "^0.78.0"
+    "node-sql-2": "^0.78.0"
+  },
+  "peerDependencies": {
+    "bluebird": ">= 2.10.2"
   },
   "devDependencies": {
     "blue-tape": "^0.1.7",
-    "sqlite3": "3.x"
+    "sqlite3": "3.x",
+    "bluebird": "^2.10.2"
+  },
+  "resolutions": {
+    "lodash": "^4.17.5"
   }
 }

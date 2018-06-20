@@ -14,7 +14,7 @@ Initializing an instance also creates a connection pool. The url argument is
 the same as in node-anydb
 
 ```js
-var anydbsql = require('anydb-sql');
+var anydbsql = require('anydb-sql-2');
 
 var db = anydbsql({
     url: 'postgres://user:pass@host:port/database',
