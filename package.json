@@ -36,12 +36,15 @@
     "any-db-mysql": "^2.1.2",
     "any-db-postgres": "^2.1.4",
     "any-db-transaction": "^2.2.2",
-    "bluebird": "^2.10.2",
     "node-sql-2": "^0.78.0"
+  },
+  "peerDependencies": {
+    "bluebird": ">= 2.10.2"
   },
   "devDependencies": {
     "blue-tape": "^0.1.7",
-    "sqlite3": "3.x"
+    "sqlite3": "3.x",
+    "bluebird": "^2.10.2"
   },
   "resolutions": {
     "lodash": "^4.17.5"
