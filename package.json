@@ -36,7 +36,7 @@
     "any-db-mysql": "^2.1.2",
     "any-db-postgres": "^2.1.4",
     "any-db-transaction": "^2.2.2",
-    "bluebird": "^2.10.2",
+    "bluebird": ">= 2.10.2",
     "node-sql-2": "^0.78.0"
   },
   "devDependencies": {
