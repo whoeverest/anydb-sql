@@ -1,6 +1,6 @@
 {
   "name": "anydb-sql-2",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Minimal ORM for mysql, postgresql and sqlite with complete arbitrary SQL query support (based on brianc's query builder sql)",
   "main": "anydb-sql.js",
   "types": "d.ts/anydb-sql.d.ts",
@@ -36,7 +36,7 @@
     "any-db-mysql": "^2.1.2",
     "any-db-postgres": "^2.1.4",
     "any-db-transaction": "^2.2.2",
-    "bluebird": "^2.10.2",
+    "bluebird": ">= 2.10.2",
     "node-sql-2": "^0.78.0"
   },
   "devDependencies": {

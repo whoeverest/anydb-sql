@@ -199,7 +199,7 @@ module.exports.anydbSQL = function (opt) {
         return P.try(function() {
             return wrapTransaction(pool.begin());
         }).then(function(tx) {
-            return P.try(f, tx).then(function(res) {
+            return P.try(function() { return f(tx); }).then(function(res) {
                 if (tx._logQueries)
                     console.log("Commiting tx", tx._id, res);
                 return tx.commitAsync().thenReturn(res);
