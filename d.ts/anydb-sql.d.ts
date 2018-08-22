@@ -252,7 +252,7 @@ declare module "anydb-sql-2" {
       close(): void;
       getPool(): AnyDBPool;
       setPool(pool: AnydbSql): void;
-      testMode(val: boolean): void;
+      testMode(val: boolean): Promise<void>;
       testReset(): Promise<void>;
       dialect(): string;
     }
