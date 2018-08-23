@@ -342,9 +342,10 @@ module.exports.anydbSQL = function (opt) {
 
         if (val === true) {
             if (testMode) {
-                console.warn(lastTestMode.stack);
+                console.warn(lastTestMode && lastTestMode.stack);
                 let e = new Error('DB is already in test mode!');
-                return console.warn(e.stack)
+                console.warn(e.stack)
+                return P.resolve()
             }
             lastTestMode = new Error('Test mode was last activated here, but not de-activated:');
             testMode = true;
@@ -357,7 +358,8 @@ module.exports.anydbSQL = function (opt) {
             if (!testMode) {
                 console.warn(lastTestMode && lastTestMode.stack);
                 let e = new Error('DB not in test mode!');
-                return console.warn(e.stack);
+                console.warn(e.stack);
+                return P.resolve()
             }
             lastTestMode = new Error('Test mode deactivated here, but not re-activated');
 
