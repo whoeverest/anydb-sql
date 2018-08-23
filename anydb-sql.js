@@ -384,7 +384,7 @@ module.exports.anydbSQL = function (opt) {
         fakeTxnPool.testActive = false;
         const rollbackPromise = fakeTxnPool.rollbackAsync().catch((e) => {
             if (e.message.indexOf("method 'rollback' unavailable in state 'closed'") >= 0) {
-                console.log("anydb, test mode warning: can't reset test. Did you forget to wait for the promise returned by testReset,or send broken SQL to the DB?")
+                console.log("anydb, test mode warning: can't reset test. Did you forget to wait for the promise returned by testReset, or send broken SQL to the DB?")
                 console.log(e.stack);
             } else {
                 throw e;
