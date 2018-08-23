@@ -306,15 +306,25 @@ module.exports.anydbSQL = function (opt) {
     function txWithoutSavepointCommits(tx) {
         const oldBegin = tx.begin;
 
+        tx.testActive = true;
         tx.begin = function() {
             const savepoint = oldBegin.call(this);
             savepoint.commitAsync = function() { return P.resolve(); };
             savepoint.rollbackAsync = function() { return P.resolve(); };
+
+            let oldQ = savepoint.queryAsync;
+
+            savepoint.queryAsync = function() {
+              if (tx.testActive) return oldQ.apply(this, arguments)
+              else throw new Error('Test mode was deactivated, but queries are still running!');
+            }
             return savepoint;
         }
 
         return tx;
     }
+
+    let lastTestMode = null;
 
     /**
      * When the DB is in test mode, `db.begin` doesn't create new transactions.
@@ -327,24 +337,40 @@ module.exports.anydbSQL = function (opt) {
      * -> commit: does nothing
      * -> rollback: is translated to RESTORE SAVEPOINT
      */
-    db.testMode = function(val) {
+    db.testMode = function (val) {
         if (val === void 0) val = true;
 
         if (val === true) {
             if (testMode) {
-                return console.warn('DB is already in test mode; ignoring.');
+                console.warn(lastTestMode && lastTestMode.stack);
+                let e = new Error('DB is already in test mode!');
+                console.warn(e.stack)
+                return P.resolve()
             }
+            lastTestMode = new Error('Test mode was last activated here, but not de-activated:');
             testMode = true;
             oldPool = pool;
             fakeTxnPool = txWithoutSavepointCommits(wrapTransaction(pool.begin()));
             db.setPool(fakeTxnPool);
+
+            return Promise.resolve()
         } else {
             if (!testMode) {
-                return console.warn('DB is not in test mode; ignoring.');
+                console.warn(lastTestMode && lastTestMode.stack);
+                let e = new Error('DB not in test mode!');
+                console.warn(e.stack);
+                return P.resolve()
             }
-            db.setPool(oldPool);
-            fakeTxnPool = null;
-            testMode = false;
+            lastTestMode = new Error('Test mode deactivated here, but not re-activated');
+
+            return fakeTxnPool.rollbackAsync()
+                .finally(() => {
+                    fakeTxnPool.testActive = false;
+                    fakeTxnPool = null;
+                    testMode = false;
+                    db.setPool(oldPool);
+                })
+
         }
     }
 
@@ -355,9 +381,11 @@ module.exports.anydbSQL = function (opt) {
         if (!testMode) {
             throw new Error('DB is not in test mode')
         }
+        fakeTxnPool.testActive = false;
         const rollbackPromise = fakeTxnPool.rollbackAsync().catch((e) => {
             if (e.message.indexOf("method 'rollback' unavailable in state 'closed'") >= 0) {
-                console.log("anydb, test mode warning: can't reset test. Did you send broken SQL to the DB?")
+                console.log("anydb, test mode warning: can't reset test. Did you forget to wait for the promise returned by testReset,or send broken SQL to the DB?")
+                console.log(e.stack);
             } else {
                 throw e;
             }
