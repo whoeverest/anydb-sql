@@ -214,7 +214,9 @@ declare module "anydb-sql-2" {
       gt(node: any): BinaryNode;
       lt(node: any): BinaryNode;
       like(str: string): BinaryNode;
+      notLike(str: string): BinaryNode;
       ilike(str: string): BinaryNode;
+      notILike(str: string): BinaryNode;
       multiply: {
         (node: Column<any, T>): Column<any, T>;
         (n: number): Column<any, number>; //todo check column names
