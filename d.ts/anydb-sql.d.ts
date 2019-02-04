@@ -267,3 +267,4 @@ export interface AnydbSql extends DatabaseConnection {
 }
 
 export function anydbSQL(config: Object): AnydbSql;
+export function create(config: Object): AnydbSql;

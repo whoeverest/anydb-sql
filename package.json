@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "blue-tape": "^0.1.7",
-    "sqlite3": "3.x"
+    "sqlite3": "4.x"
   },
   "resolutions": {
     "lodash": "^4.17.5"
