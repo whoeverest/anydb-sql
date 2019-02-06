@@ -155,7 +155,10 @@ function create(opt) {
         .nodeify(fn);
     };
     extQuery.allWithin = extQuery.execWithin;
-    extQuery.exec = extQuery.execWithin.bind(extQuery, pool);
+    extQuery.exec = (fn) => {
+      db.open();
+      return extQuery.execWithin(pool, fn);
+    };
     extQuery.all = extQuery.exec;
 
     extQuery.getWithin = function(where, fn) {
@@ -167,7 +170,10 @@ function create(opt) {
         .nodeify(fn);
     };
 
-    extQuery.get = extQuery.getWithin.bind(extQuery, pool);
+    extQuery.get = (fn) => {
+      db.open();
+      return extQuery.getWithin(pool, fn);
+    };
 
     extQuery.execTx = function() {
       var q = self.toQuery();
