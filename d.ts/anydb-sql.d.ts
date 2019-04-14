@@ -35,9 +35,7 @@ export interface ColumnDefinition<Name extends string, Type> extends MaybeNamed<
 
 export interface TableDefinition<Name extends string, Row> {
   name: Name;
-  columns: {
-    [CName in keyof Row]: CName extends string ? ColumnDefinition<CName, Row[CName]> : never
-  };
+  columns: { [CName in keyof Row]: CName extends string ? ColumnDefinition<CName, Row[CName]> : never };
   has?: { [key: string]: { from: string; many?: boolean } };
 }
 
@@ -71,27 +69,27 @@ interface Queryable<T> {
   where(...nodes: any[]): Query<T>;
   delete(): ModifyingQuery;
   select(): Query<T>;
-  select<N1 extends string, T1>(n1: Column<N1, T1>): Query<T1>;
+  select<N1 extends string, T1>(n1: Column<N1, T1>): Query<{ [N in N1]: T1 }>;
   select<N1 extends string, T1, N2 extends string, T2>(
     n1: Column<N1, T1>,
-    n2: Column<N2, T2>
+    n2: Column<N2, T2>,
   ): Query<{ [N in N1]: T1 } & { [N in N2]: T2 }>;
   select<N1 extends string, T1, N2 extends string, T2, N3 extends string, T3>(
     n1: Column<N1, T1>,
     n2: Column<N2, T2>,
-    n3: Column<N3, T3>
+    n3: Column<N3, T3>,
   ): Query<{ [N in N1]: T1 } & { [N in N2]: T2 } & { [N in N3]: T3 }>;
   select<U>(...nodesOrTables: any[]): Query<U>;
 
   selectDeep<N1 extends string, T1>(n1: Table<N1, T1>): Query<T1>;
   selectDeep<N1 extends string, T1, N2 extends string, T2>(
     n1: Table<N1, T1>,
-    n2: Table<N2, T2>
+    n2: Table<N2, T2>,
   ): Query<{ [N in N1]: T1 } & { [N in N2]: T2 }>;
   selectDeep<N1 extends string, T1, N2 extends string, T2, N3 extends string, T3>(
     n1: Table<N1, T1>,
     n2: Table<N2, T2>,
-    n3: Table<N3, T3>
+    n3: Table<N3, T3>,
   ): Query<{ [N in N1]: T1 } & { [N in N2]: T2 } & { [N in N3]: T3 }>;
   //selectDeep<U>(...nodesOrTables:any[]):Query<U>
 }
@@ -204,7 +202,7 @@ export interface SQL {
   };
 }
 
-export interface Column<Name, T> {
+export interface Column<Name extends string, T> {
   name: Name;
   in(arr: T[]): BinaryNode;
   in(subQuery: SubQuery<T>): BinaryNode;
@@ -228,9 +226,9 @@ export interface Column<Name, T> {
   //todo check column names
   sum(): Column<any, number>;
   count(): Column<any, number>;
-  count(name: string): Column<any, number>;
+  count<Name extends string>(name: Name): Column<Name, number>;
   distinct(): Column<Name, T>;
-  as<OtherName>(name: OtherName): Column<OtherName, T>;
+  as<OtherName extends string>(name: OtherName): Column<OtherName, T>;
   ascending: OrderByValueNode;
   descending: OrderByValueNode;
   asc: OrderByValueNode;
