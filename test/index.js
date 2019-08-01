@@ -64,7 +64,7 @@ test('anydb-sql', function(t) {
 
     t.test('insert transaction', function(t) {
         return db.transaction(function(tx) {
-            tx.logQueries(true);
+
             return user.insert({id: 2, name: 'test2'}).execWithin(tx)
             .then(function() {
                 return user.insert({id: 3, name: 'test3'}).execWithin(tx);
@@ -151,11 +151,8 @@ test('anydb-sql', function(t) {
 
     t.test('tx savepoint', function(t) {
       let q = db.transaction(tx => {
-        tx.logQueries(true)
-        console.log("Loging queries");
 
         let sp = tx.begin();
-        console.log("Began TX");
         return sp.queryAsync('select * from users')
           .then(r => t.ok(r, 'should return some rows'))
           .then(() => sp.commitAsync());

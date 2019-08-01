@@ -125,9 +125,8 @@ function create(opt) {
           function(res) {
             if (where._logQueries) {
               console.log(
-                'anydb-sql query complete: `' + query.text + '` with params',
-                query.values,
-                'in tx',
+                'anydb-sql query complete: `' + query.text +
+                '` in tx',
                 where._id,
                 'stack\n',
                 estack.stack
@@ -146,9 +145,7 @@ function create(opt) {
               query.text +
               '`' +
               ' in tx ' +
-              where._id +
-              ' with params ' +
-              JSON.stringify(query.values);
+              where._id;
             throw err;
           }
         )
