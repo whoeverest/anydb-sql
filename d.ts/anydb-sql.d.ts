@@ -64,6 +64,17 @@ interface Executable<T> {
   allWithin(tx: DatabaseConnection): Promise<T[]>;
   toQuery(): QueryLike;
 }
+type TupleUnion<C extends any[]> = C[keyof C & number];
+
+type ColumnNames<C extends any[]> = TupleUnion<
+  { [K in keyof C]: C[K] extends Column<infer Name, infer Value> ? Name : void }
+>;
+
+type FindColumnWithName<Name extends String, C extends Column<any, any>[]> = TupleUnion<
+  { [K in keyof C]: C[K] extends Column<Name, infer Value> ? Value : never }
+>;
+
+type RowOf<Cols extends any[]> = { [K in ColumnNamesUnion<Cols>]: FindColumnWithName<K, Cols> };
 
 interface Queryable<T> {
   where(...nodes: any[]): Query<T>;
@@ -79,6 +90,8 @@ interface Queryable<T> {
     n2: Column<N2, T2>,
     n3: Column<N3, T3>,
   ): Query<{ [N in N1]: T1 } & { [N in N2]: T2 } & { [N in N3]: T3 }>;
+
+  select<Cols extends Column<any, any>[]>(...cols: Cols): Query<RowOf<Cols>>;
   select<U>(...nodesOrTables: any[]): Query<U>;
 
   selectDeep<N1 extends string, T1>(n1: Table<N1, T1>): Query<T1>;
