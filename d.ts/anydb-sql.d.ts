@@ -2,6 +2,8 @@ import * as Promise from 'bluebird';
 
 export type DBBigInt = string;
 
+export type DBDecimal = string;
+
 interface AnyDBPool extends DatabaseConnection {
   query: (text: string, values: any[], callback: (err: Error, result: any) => void) => void;
   begin: () => Transaction;
@@ -20,14 +22,15 @@ interface Named<Name extends string> {
 
 export type CastMappings = {
   text: string;
-  bigint: number;
+  bigint: DBBigInt;
   int: number;
   date: Date;
-  decimal: number;
+  decimal: DBDecimal;
 };
 
 export interface ColumnDefinition<Name extends string, Type> extends MaybeNamed<Name> {
   primaryKey?: boolean;
+
   /**
    * Datatype as specified by the concrete database dialect
    */
@@ -39,7 +42,14 @@ export interface ColumnDefinition<Name extends string, Type> extends MaybeNamed<
 }
 
 export interface TableDefinition<Name extends string, Row> {
+  /**
+   * Name of the table as specified in the database
+   */
   name: Name;
+
+  /**
+   * Object containing all the columns.
+   */
   columns: { [CName in keyof Row]: CName extends string ? ColumnDefinition<CName, Row[CName]> : never };
   has?: { [key: string]: { from: string; many?: boolean } };
 }
@@ -66,29 +76,35 @@ interface Executable<T> {
    * @return a promise of the result, null if a row doesn't exist
    */
   get(): Promise<T>;
+
   /**
    * Get the first result row from the list from within a transaction.
    * @return a promise of the result, null if a row doesn't exist
    */
   getWithin(tx: DatabaseConnection): Promise<T>;
+
   /**
    * Run the query, discarding any results if present
    */
   exec(): Promise<void>;
+
   /**
    * Run the query and get all the results
    * @return a promise for the list of results
    */
   all(): Promise<T[]>;
+
   /**
    * Execute the query within a transaction, discarding all results
    */
   execWithin(tx: DatabaseConnection): Promise<void>;
+
   /**
    * Run the query from within a transaction and get all the results
    * @return a promise for the list of results
    */
   allWithin(tx: DatabaseConnection): Promise<T[]>;
+
   /**
    * Convert the query to a Query object with the SQL text and arguments
    */
@@ -330,37 +346,177 @@ export interface SQL {
 
 export interface Column<Name extends string, T> {
   name: Name;
+
+  /**
+   * The column value can be found in a given array of items or in a subquery
+   *
+   * @param arr the Array
+   * @returns a binary node that can be used in where expressions
+   *
+   * @example
+   * ```
+   * users.where(user.email.in(emailArray))
+   * ```
+   */
   in(arr: T[]): BinaryNode;
   in(subQuery: SubQuery<T>): BinaryNode;
+
+  /**
+   * The column value can NOT be found in a given array of items or in a subquery
+   *
+   * @param arr the Array
+   * @returns a binary node that can be used in where expressions
+   *
+   * @example
+   * ```
+   * users.where(user.email.notIn(bannedUserEmails))
+   * ```
+   */
   notIn(arr: T[]): BinaryNode;
-  equals(node: any): BinaryNode;
-  notEquals(node: any): BinaryNode;
-  gte(node: any): BinaryNode;
-  lte(node: any): BinaryNode;
-  gt(node: any): BinaryNode;
-  lt(node: any): BinaryNode;
+
+  /**
+   * Check if the column value equals another (column) value
+   */
+  equals<U extends T>(node: U | Column<any, U>): BinaryNode;
+
+  /**
+   * Check if the column value does NOT equal another (column) value
+   */
+  notEquals<U extends T>(node: U | Column<any, U>): BinaryNode;
+
+  /**
+   * Check if the column value is greater than or equal to another column value
+   */
+  gte(node: T | Column<any, T> | number | Column<any, number>): BinaryNode;
+
+  /**
+   * Check if the column value is less than or equal to another column value
+   */
+  lte(node: T | Column<any, T> | number | Column<any, number>): BinaryNode;
+
+  /**
+   * Check if the column value is greater than another column value
+   */
+  gt(node: T | Column<any, T> | number | Column<any, number>): BinaryNode;
+
+  /**
+   * Check if the column value is less than another column value
+   */
+  lt(node: T | Column<any, T> | number | Column<any, number>): BinaryNode;
+
+  /**
+   * Check if the node matches a LIKE expression. See the database documentation for LIKE expression syntax
+   */
   like(str: string): BinaryNode;
+
+  /**
+   * Check if the node does NOT match a LIKE expression. See the database documentation for LIKE expression syntax
+   */
   notLike(str: string): BinaryNode;
+
+  /**
+   * Check if the node matches a case Insensitive LIKE expression.
+   * See the database documentation for LIKE expression syntax
+   */
   ilike(str: string): BinaryNode;
+
+  /**
+   * Check if the node does NOT match a case Insensitive LIKE expression.
+   * See the database documentation for LIKE expression syntax
+   */
   notILike(str: string): BinaryNode;
-  multiply: {
-    (node: Column<any, T>): Column<any, T>;
-    (n: number): Column<any, number>; //todo check column names
-  };
+
+  /**
+   * Multiply the node with another node or value
+   */
+  multiply(node: Column<any, T> | Column<any, number> | T | number): Column<any, T>;
+
+  /**
+   * Check if the column is null
+   */
   isNull(): BinaryNode;
+
+  /**
+   * Check if the column is NOT null
+   */
   isNotNull(): BinaryNode;
-  //todo check column names
+
+  /**
+   * Compute a sum of the column.
+   * @deprecated Please use the named variant!
+   */
   sum(): Column<any, T>;
+
+  /**
+   * Compute a sum of the column and give it a name
+   * @param name the new colum name
+   */
+  sum<Name extends string>(n: Name): Column<Name, T>;
+
+  /**
+   * Compute a count of the column or results
+   * @deprecated Please use the named variant!
+   */
   count(): Column<any, DBBigInt>;
+
+  /**
+   * Compute a count of the column or results and give it a name
+   * @param name the new colum name
+   */
   count<Name extends string>(name: Name): Column<Name, DBBigInt>;
+
+  /**
+   * Get the distinct values of this column (without repetition
+   *
+   * @example
+   * ```
+   * users.select(user.email.distinct())
+   * ```
+   */
   distinct(): Column<Name, T>;
+
+  /**
+   * Give this column another name in the result set
+   *
+   * @param name the new name
+   *
+   * @example
+   * ```
+   * users.select(user.email.as('electronicMail'))
+   * ```
+   */
   as<OtherName extends string>(name: OtherName): Column<OtherName, T>;
+
+  /**
+   * Get an ascending ordering direction for this column
+   */
   ascending: OrderByValueNode;
+
+  /**
+   * Get an descending ordering direction for this column
+   */
   descending: OrderByValueNode;
+
+  /**
+   * Get an ascending ordering direction for this column
+   */
   asc: OrderByValueNode;
+
+  /**
+   * Get an descending ordering direction for this column
+   */
   desc: OrderByValueNode;
-  key(key: string): Column<any, string>;
-  keyText(key: string): Column<any, string>;
+
+  /**
+   * Access a JSON key within the specified column
+   */
+  key<Key extends keyof T>(key: K): Column<any, T[K]>;
+
+  /**
+   * Access a JSON key within a specified column and convert it to string
+   */
+  keyText<Key extends keyof T>(key: K): Column<any, string>;
+
   contains(key: any): Column<any, any>;
   cast<T extends keyof CastMappings>(type: T): Column<Name, CastMappings[T]>;
 }
@@ -371,7 +527,15 @@ export interface BinaryNode {
 }
 
 export interface AnydbSql extends DatabaseConnection {
+  /**
+   * Define a new table with a given name containing a row of the given type
+   * @param map The table definition object
+   */
   define<Name extends string, T>(map: TableDefinition<Name, T>): Table<Name, T>;
+
+  /**
+   * Run a function as a transaction
+   */
   transaction<T>(fn: (tx: Transaction) => Promise<T>): Promise<T>;
   allOf(...tables: Table<any, any>[]): any;
   models: { [key: string]: Table<any, any> };
@@ -379,13 +543,25 @@ export interface AnydbSql extends DatabaseConnection {
     LOWER: <Name extends string>(name: Column<Name, string>) => Column<Name, string>;
     RTRIM: <Name extends string>(name: Column<Name, string>) => Column<Name, string>;
   };
+  /**
+   * Create a database function with the given name that you can use within queries
+   * @param name the function name as it is in the database e.g. `"COUNT"`
+   */
   makeFunction(name: string): Function;
   begin(): Transaction;
   open(): void;
   close(): void;
   getPool(): AnyDBPool;
   setPool(pool: AnydbSql): void;
+  /**
+   * Turn testing mode on or off. Transactions become savepoints and reseting the database rolls back any
+   * transactions made during in test mode
+   */
   testMode(val: boolean): Promise<void>;
+
+  /**
+   * Reset the current testmode transaction, rolling back any changes made during the test
+   */
   testReset(): Promise<void>;
   dialect(): string;
 }
