@@ -1,5 +1,7 @@
 import * as Promise from 'bluebird';
 
+export type DBBigInt = string;
+
 interface AnyDBPool extends DatabaseConnection {
   query: (text: string, values: any[], callback: (err: Error, result: any) => void) => void;
   begin: () => Transaction;
@@ -26,6 +28,9 @@ export type CastMappings = {
 
 export interface ColumnDefinition<Name extends string, Type> extends MaybeNamed<Name> {
   primaryKey?: boolean;
+  /**
+   * Datatype as specified by the concrete database dialect
+   */
   dataType?: string;
   references?: { table: string; column: string };
   notNull?: boolean;
@@ -56,29 +61,91 @@ export interface Transaction extends DatabaseConnection {
 }
 
 interface Executable<T> {
+  /**
+   * Get the first result row from the list, if any.
+   * @return a promise of the result, null if a row doesn't exist
+   */
   get(): Promise<T>;
+  /**
+   * Get the first result row from the list from within a transaction.
+   * @return a promise of the result, null if a row doesn't exist
+   */
   getWithin(tx: DatabaseConnection): Promise<T>;
+  /**
+   * Run the query, discarding any results if present
+   */
   exec(): Promise<void>;
+  /**
+   * Run the query and get all the results
+   * @return a promise for the list of results
+   */
   all(): Promise<T[]>;
+  /**
+   * Execute the query within a transaction, discarding all results
+   */
   execWithin(tx: DatabaseConnection): Promise<void>;
+  /**
+   * Run the query from within a transaction and get all the results
+   * @return a promise for the list of results
+   */
   allWithin(tx: DatabaseConnection): Promise<T[]>;
+  /**
+   * Convert the query to a Query object with the SQL text and arguments
+   */
   toQuery(): QueryLike;
 }
 type TupleUnion<C extends any[]> = C[keyof C & number];
 
 type ColumnNames<C extends any[]> = TupleUnion<
-  { [K in keyof C]: C[K] extends Column<infer Name, infer Value> ? Name : void }
+  { [K in keyof C]: C[K] extends Column<infer Name, infer Value> ? Name : never }
 >;
 
-type FindColumnWithName<Name extends String, C extends Column<any, any>[]> = TupleUnion<
+type FindColumnWithName<Name extends string, C extends Column<any, any>[]> = TupleUnion<
   { [K in keyof C]: C[K] extends Column<Name, infer Value> ? Value : never }
 >;
 
-type RowOf<Cols extends any[]> = { [K in ColumnNamesUnion<Cols>]: FindColumnWithName<K, Cols> };
+type RowOf<Cols extends any[]> = { [K in ColumnNames<Cols>]: FindColumnWithName<K, Cols> };
+
+type WhereCondition<T> = BinaryNode | BinaryNode[] | Partial<T>;
 
 interface Queryable<T> {
-  where(...nodes: any[]): Query<T>;
-  delete(): ModifyingQuery;
+  /**
+   * Change the resultset source. You may use a join of multiple tables
+   *
+   * Note that this method doesn't change the filtering (where) or projection (select) source, so
+   * any results returned or filters applied will be of the original table or resultset
+   */
+  from(table: TableNode): Query<T>;
+  from(statement: string): Query<T>;
+
+  /**
+   * Filter the results by the specified conditions. If multiple conditions are passed, they will
+   * be joined with AND. A condition may either be a BinaryNode SQL expression, or an object that
+   * contains the column names and their desired values e.g. `where({ email: "example@test.com" })`
+   * @param nodes either boolean-evaluating conditional expressions or an object
+   * @example
+   * ```
+   * users.where({email: "example@test.com"})
+   * users.where(user.primaryEmail.equals(user.secondaryEmail))
+   * ```
+   */
+  where(...nodes: WhereCondition<T>[]): Query<T>;
+  /**
+   * Create a delete query
+   */
+  delete(): ModifyingQuery<T>;
+  /**
+   * Get one or more specific columns from the result set.
+   *
+   * Only use this method only after `from` and `where`, otherwise you will be modifying the result
+   * set shape.
+   *
+   * You may use multiple columns from several different tables as long as those tables have been
+   * joined in a previous `from` call.
+   *
+   * In addition you may pass aggregate columns as well as rename columns to have different names
+   * in the final result set.
+   */
   select(): Query<T>;
   select<N1 extends string, T1>(n1: Column<N1, T1>): Query<{ [N in N1]: T1 }>;
   select<N1 extends string, T1, N2 extends string, T2>(
@@ -94,55 +161,109 @@ interface Queryable<T> {
   select<Cols extends Column<any, any>[]>(...cols: Cols): Query<RowOf<Cols>>;
   select<U>(...nodesOrTables: any[]): Query<U>;
 
-  selectDeep<N1 extends string, T1>(n1: Table<N1, T1>): Query<T1>;
-  selectDeep<N1 extends string, T1, N2 extends string, T2>(
-    n1: Table<N1, T1>,
-    n2: Table<N2, T2>,
-  ): Query<{ [N in N1]: T1 } & { [N in N2]: T2 }>;
-  selectDeep<N1 extends string, T1, N2 extends string, T2, N3 extends string, T3>(
-    n1: Table<N1, T1>,
-    n2: Table<N2, T2>,
-    n3: Table<N3, T3>,
-  ): Query<{ [N in N1]: T1 } & { [N in N2]: T2 } & { [N in N3]: T3 }>;
-  //selectDeep<U>(...nodesOrTables:any[]):Query<U>
+  /**
+   * Update columns of the table.
+   * @params o - a partial row object matching the keys and values of the table row
+   */
+  update(o: Partial<T>): ModifyingQuery<T>;
+
+  /**
+   * Order results by the specified order criteria. You may obtain ordering criteria by accessing
+   * the .asc or .desc properties of columns
+   * @example
+   * ```
+   * users.where(...).order(user.dateRegistered.desc)
+   * ```
+   */
+  order(...criteria: OrderByValueNode[]): Query<T>;
+
+  /**
+   * Limit number of results
+   * @param l the limit
+   */
+  limit(l: number): Query<T>;
+  /**
+   * Getthe result starting the specified offset index
+   * @param o the offset
+   */
+  offset(o: number): Query<T>;
 }
 
-export interface Query<T> extends Executable<T>, Queryable<T> {
-  from(table: TableNode): Query<T>;
-  from(statement: string): Query<T>;
-  update(o: { [key: string]: any }): ModifyingQuery;
-  update(o: {}): ModifyingQuery;
-  group(...nodes: any[]): Query<T>;
-  order(...criteria: OrderByValueNode[]): Query<T>;
-  limit(l: number): Query<T>;
-  offset(o: number): Query<T>;
+export interface NonExecutableQuery<T> extends Queryable<T> {
+  /**
+   * Group by one or more columns
+   * @example
+   * ```
+   * userPoints.where(userPoints.id.in(userIdList)).select(userPoints.point.sum()).group(userPoints.userId)
+   * ```
+   */
+  group(...nodes: Column<any, any>[]): Query<T>;
+  group(nodes: Column<any, any>[]): Query<T>;
+
+  /**
+   * Get distinct result based on one or more columns. Use after select()
+   */
   distinctOn(...columns: Column<any, any>[]): Query<T>; // todo: Column<any, any> can be more specific
 }
 
-export interface SubQuery<T> {
-  select<Name>(node: Column<Name, T>): SubQuery<T>;
-  select(...nodes: any[]): SubQuery<T>;
-  where(...nodes: any[]): SubQuery<T>;
-  from(table: TableNode): SubQuery<T>;
-  from(statement: string): SubQuery<T>;
-  group(...nodes: any[]): SubQuery<T>;
-  order(criteria: OrderByValueNode): SubQuery<T>;
+export interface Query<T> extends Executable<T>, NonExecutableQuery<T> {}
+
+export interface SubQuery<T> extends NonExecutableQuery<T> {
+  /**
+   * Convert the subquery into an exists (subquery)
+   */
   exists(): BinaryNode;
+
+  /**
+   * Convert the subquery into an NOT EXISTS (subquery)
+   */
   notExists(): BinaryNode;
   notExists(subQuery: SubQuery<any>): BinaryNode;
 }
 
-export interface ModifyingQuery extends Executable<void> {
-  returning<U>(...nodes: any[]): Query<U>;
-  where(...nodes: any[]): ModifyingQuery;
+export interface ModifyingQuery<T> extends Executable<T> {
+  /**
+   * Pick columns to return from the modifying query, or use star to return all rows
+   */
+  returning<Cols extends Column<any, any>[]>(...cols: Cols): Query<RowOf<Cols>>;
+  returning<U = T>(star: '*'): Query<U>;
+
+  /**
+   * Filter the modifications by the specified conditions. If multiple conditions are passed, they will
+   * be joined with AND. A condition may either be a BinaryNode SQL expression, or an object that
+   * contains the column names and their desired values e.g. `where({ email: "example@test.com" })`
+   *
+   * @param nodes either boolean-evaluating conditional expressions or an object
+   *
+   * @example
+   * ```
+   * users.where({email: "example@test.com"})
+   * users.where(user.primaryEmail.equals(user.secondaryEmail))
+   * ```
+   */
+  where(...nodes: WhereCondition<T>[]): ModifyingQuery<T>;
 }
 
 export interface TableNode {
+  /**
+   * Within a from condition, join this table node with another table node
+   */
   join(table: TableNode): JoinTableNode;
+  /**
+   * Within a from condition, LEFT JOIN this table node with another table node
+   */
   leftJoin(table: TableNode): JoinTableNode;
 }
 
 export interface JoinTableNode extends TableNode {
+  /**
+   * Specify the joining condition for a join table node
+   *
+   * @param filter a binary expression describing the join condition
+   *
+   * @example
+   * users.from(users.join(posts).on(users.id.equals(posts.userId)))
+   */
   on(filter: BinaryNode): TableNode;
   on(filter: string): TableNode;
 }
@@ -154,7 +275,7 @@ interface DropQuery extends Executable<void> {
   ifExists(): Executable<void>;
 }
 
-type Columns<T> = { [Name in keyof T]: Column<Name, T[Name]> };
+type Columns<T> = { [Name in keyof T]: Name extends string ? Column<Name, T[Name]> : never };
 
 export type Table<Name extends string, T> = TableNode &
   Queryable<T> &
@@ -163,24 +284,16 @@ export type Table<Name extends string, T> = TableNode &
     create(): CreateQuery;
     drop(): DropQuery;
     as<OtherName extends string>(name: OtherName): Table<OtherName, T>;
-    update(o: any): ModifyingQuery;
-    insert(row: T): ModifyingQuery;
-    insert(rows: T[]): ModifyingQuery;
+    insert(row: T): ModifyingQuery<T>;
+    insert(rows: T[]): ModifyingQuery<T>;
     select(): Query<T>;
-    select<U>(...nodes: any[]): Query<U>;
-    from<U>(table: TableNode): Query<U>;
-    from<U>(statement: string): Query<U>;
-    star(): Column<void, void>;
-    subQuery<U>(): SubQuery<U>;
-    eventEmitter: {
-      emit: (type: string, ...args: any[]) => void;
-      on: (eventName: string, handler: Function) => void;
-    };
-    columns: Column<void, void>[];
+    star(): Column<any, unknown>;
+    subQuery(): SubQuery<T>;
+    columns: Column<any, any>[];
     sql: SQL;
     alter(): AlterQuery<T>;
     indexes(): IndexQuery;
-    count(): Query<number>;
+    count(): Query<DBBigInt>;
   };
 
 type Selectable<Name extends string, T> = Table<Name, T> | Column<Name, T>;
@@ -211,7 +324,7 @@ export interface IndexCreationQuery extends Executable<void> {
 
 export interface SQL {
   functions: {
-    LOWER<Name>(c: Column<Name, string>): Column<Name, string>;
+    LOWER<Name extends string>(c: Column<Name, string>): Column<Name, string>;
   };
 }
 
@@ -237,9 +350,9 @@ export interface Column<Name extends string, T> {
   isNull(): BinaryNode;
   isNotNull(): BinaryNode;
   //todo check column names
-  sum(): Column<any, number>;
-  count(): Column<any, number>;
-  count<Name extends string>(name: Name): Column<Name, number>;
+  sum(): Column<any, T>;
+  count(): Column<any, DBBigInt>;
+  count<Name extends string>(name: Name): Column<Name, DBBigInt>;
   distinct(): Column<Name, T>;
   as<OtherName extends string>(name: OtherName): Column<OtherName, T>;
   ascending: OrderByValueNode;
@@ -263,8 +376,8 @@ export interface AnydbSql extends DatabaseConnection {
   allOf(...tables: Table<any, any>[]): any;
   models: { [key: string]: Table<any, any> };
   functions: {
-    LOWER: <Name>(name: Column<Name, string>) => Column<Name, string>;
-    RTRIM: <Name>(name: Column<Name, string>) => Column<Name, string>;
+    LOWER: <Name extends string>(name: Column<Name, string>) => Column<Name, string>;
+    RTRIM: <Name extends string>(name: Column<Name, string>) => Column<Name, string>;
   };
   makeFunction(name: string): Function;
   begin(): Transaction;
