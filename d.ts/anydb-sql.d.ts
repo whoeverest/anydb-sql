@@ -510,12 +510,12 @@ export interface Column<Name extends string, T> {
   /**
    * Access a JSON key within the specified column
    */
-  key<Key extends keyof T>(key: K): Column<any, T[K]>;
+  key<Key extends keyof T>(key: Key): Column<any, T[Key]>;
 
   /**
    * Access a JSON key within a specified column and convert it to string
    */
-  keyText<Key extends keyof T>(key: K): Column<any, string>;
+  keyText<Key extends keyof T>(key: Key): Column<any, string>;
 
   contains(key: any): Column<any, any>;
   cast<T extends keyof CastMappings>(type: T): Column<Name, CastMappings[T]>;
