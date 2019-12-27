@@ -454,6 +454,18 @@ export interface Column<Name extends string, T> {
   sum<Name extends string>(n: Name): Column<Name, T>;
 
   /**
+   * Compute min of the column and give it a name
+   * @param name the new colum name
+   */
+  min<Name extends string>(n: Name): Column<Name, T>;
+
+  /**
+   * Compute maxof the column and give it a name
+   * @param name the new colum name
+   */
+  max<Name extends string>(n: Name): Column<Name, T>;
+
+  /**
    * Compute a count of the column or results
    * @deprecated Please use the named variant!
    */
